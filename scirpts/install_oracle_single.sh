@@ -17,13 +17,13 @@ echo "设置hostname"
 echo "${outputs.oracle.privateIp}    "  `hostname` >>/etc/hosts
 
 echo "优化内核参数"
-cat <<EOF >/etc/sysctl.d/97-oracle-database-sysctl.conf
+cat <<EOF >/etc/sysctl.conf
 vm.swappiness = 10
 vm.vfs_cache_pressure = 50
 fs.aio-max-nr = 1048576
 fs.file-max = 6815744
-kernel.shmall = 2097152
-kernel.shmmax = 4294967295
+kernel.shmall = 1073741824
+kernel.shmmax = 4398046511104
 kernel.shmmni = 4096
 kernel.sem = 250 32000 100 128
 net.ipv4.ip_local_port_range = 9000 65500
@@ -55,10 +55,14 @@ ${GRIDUSER} soft nproc 2047
 ${GRIDUSER} hard nproc 16384
 ${GRIDUSER} soft nofile 1024
 ${GRIDUSER} hard nofile 65536
+${GRIDUSER} soft stack 10240   
+${GRIDUSER} hard stack 32768   
 ${ORACLEUSER} soft nproc 2047
 ${ORACLEUSER} hard nproc 16384
 ${ORACLEUSER} soft nofile 1024
 ${ORACLEUSER} hard nofile 65536
+${ORACLEUSER} soft stack 10240   
+${ORACLEUSER} hard stack 32768 
 EOF
 cat <<"EOF" >>/etc/profile.d/oracle.sh
 if [ $USER = "${ORACLEUSER}" ] ||[ $USER = "${GRIDUSER}" ]; then
@@ -91,19 +95,19 @@ udevadm control --reload-rules && udevadm trigger
 
 
 echo "创建文件目录结构"
-mkdir -p ${ORACLEPATH}/app/oraInventory
-mkdir -p ${ORACLEPATH}/app/oracle
-mkdir -p ${ORACLEPATH}/app/grid
-mkdir -p ${ORACLEPATH}/app/oracle/product/12c/db_1/
-mkdir -p ${ORACLEPATH}/app/grid/product/12c/grid/
+mkdir -p ${ORACLEPATH}/oracle/oraInventory
+mkdir -p ${ORACLEPATH}/oracle/oracle
+mkdir -p ${ORACLEPATH}/oracle/grid
+mkdir -p ${ORACLEPATH}/oracle/oracle/product/12c/db_1/
+mkdir -p ${ORACLEPATH}/oracle/grid/product/12c/grid/
 mkdir -p ${ORACLEPATH}/install
 
 chown -R ${GRIDUSER}:oinstall ${ORACLEPATH}
-chown -R ${GRIDUSER}:oinstall ${ORACLEPATH}/app/oraInventory
-chown -R ${ORACLEUSER}:oinstall ${ORACLEPATH}/app/oracle
-chown -R ${GRIDUSER}:oinstall ${ORACLEPATH}/app/grid
-chown -R ${ORACLEUSER}:oinstall ${ORACLEPATH}/app/oracle/product/12c/db_1/
-chown -R ${GRIDUSER}:oinstall ${ORACLEPATH}/app/grid/product/12c/grid/
+chown -R ${GRIDUSER}:oinstall ${ORACLEPATH}/oracle/oraInventory
+chown -R ${ORACLEUSER}:oinstall ${ORACLEPATH}/oracle/oracle
+chown -R ${GRIDUSER}:oinstall ${ORACLEPATH}/oracle/grid
+chown -R ${ORACLEUSER}:oinstall ${ORACLEPATH}/oracle/oracle/product/12c/db_1/
+chown -R ${GRIDUSER}:oinstall ${ORACLEPATH}/oracle/grid/product/12c/grid/
 chmod 775 ${ORACLEPATH} -R
 
 
@@ -134,7 +138,7 @@ if [[ '${ORACLE_VERSION}' == '12.1.0.2' ]]; then
   su -c 'cd ${ORACLEPATH}/install && unzip -q linuxamd64_12102_grid_2of2.zip'   - ${GRIDUSER}
 fi
 if [[ '${ORACLE_VERSION}' == '12.2.0.1' ]]; then
-    su -c 'cd ${ORACLEPATH}/install && unzip -q linuxx64_12201_grid_home.zip -d ${ORACLEPATH}/app/grid/product/12c/grid/'   - ${GRIDUSER}
+    su -c 'cd ${ORACLEPATH}/install && unzip -q linuxx64_12201_grid_home.zip -d ${ORACLEPATH}/oracle/grid/product/12c/grid/'   - ${GRIDUSER}
     su -c 'cd ${ORACLEPATH}/install && unzip -q linuxx64_12201_database.zip'   - ${ORACLEUSER}
 fi
 
@@ -142,8 +146,8 @@ fi
 echo "配置grid用户环境变量"
 su -c 'cat <<"EOF" >>/home/${GRIDUSER}/.bash_profile
 export ORACLE_SID=+ASM
-export ORACLE_BASE=${ORACLEPATH}/app/grid
-export ORACLE_HOME=${ORACLEPATH}/app/grid/product/12c/grid/
+export ORACLE_BASE=${ORACLEPATH}/oracle/grid
+export ORACLE_HOME=${ORACLEPATH}/oracle/grid/product/12c/grid/
 export PATH=$ORACLE_HOME/bin:$ORACLE_HOME/OPatch:$ORACLE_HOME/jdk/bin:$PATH
 EOF'  - ${GRIDUSER}
 
@@ -153,10 +157,10 @@ echo "生成grid的response文件"
 if [[ '${ORACLE_VERSION}' == '12.1.0.2' ]]; then
 cat <<EOF >${ORACLEPATH}/install/grid.rsp
 oracle.install.responseFileVersion=/oracle/install/rspfmt_crsinstall_response_schema_v12.1.0 
-INVENTORY_LOCATION=${ORACLEPATH}/app/oraInventory  
+INVENTORY_LOCATION=${ORACLEPATH}/oracle/oraInventory  
 oracle.install.option=HA_CONFIG  
-ORACLE_BASE=${ORACLEPATH}/app/grid
-ORACLE_HOME=${ORACLEPATH}/app/grid/product/12c/grid
+ORACLE_BASE=${ORACLEPATH}/oracle/grid
+ORACLE_HOME=${ORACLEPATH}/oracle/grid/product/12c/grid
 oracle.install.asm.OSDBA=asmdba  
 oracle.install.asm.OSOPER=asmoper  
 oracle.install.asm.OSASM=asmadmin  
@@ -181,10 +185,10 @@ fi
 if [[ '${ORACLE_VERSION}' == '12.2.0.1' ]]; then
 cat <<EOF >${ORACLEPATH}/install/grid.rsp
 oracle.install.responseFileVersion=/oracle/install/rspfmt_crsinstall_response_schema_v12.2.0 
-INVENTORY_LOCATION=${ORACLEPATH}/app/oraInventory  
+INVENTORY_LOCATION=${ORACLEPATH}/oracle/oraInventory  
 oracle.install.option=HA_CONFIG  
-ORACLE_BASE=${ORACLEPATH}/app/grid
-ORACLE_HOME=${ORACLEPATH}/app/grid/product/12c/grid
+ORACLE_BASE=${ORACLEPATH}/oracle/grid
+ORACLE_HOME=${ORACLEPATH}/oracle/grid/product/12c/grid
 oracle.install.asm.OSDBA=asmdba  
 oracle.install.asm.OSOPER=asmoper  
 oracle.install.asm.OSASM=asmadmin  
@@ -203,16 +207,16 @@ fi
 echo "开始安装grid"
 if [[ '${ORACLE_VERSION}' == '12.1.0.2' ]]; then
     su -c '${ORACLEPATH}/install/grid/runInstaller -ignorePrereq -silent -responseFile ${ORACLEPATH}/install/grid.rsp -waitforcompletion'   - ${GRIDUSER}
-    ${ORACLEPATH}/app/oraInventory/orainstRoot.sh
-    ${ORACLEPATH}/app/grid/product/12c/grid/root.sh 
-    su -c '${ORACLEPATH}/app/grid/product/12c/grid/cfgtoollogs/configToolAllCommands RESPONSE_FILE=${ORACLEPATH}/install/gridpass.rsp'   - ${GRIDUSER}
+    ${ORACLEPATH}/oracle/oraInventory/orainstRoot.sh
+    ${ORACLEPATH}/oracle/grid/product/12c/grid/root.sh 
+    su -c '${ORACLEPATH}/oracle/grid/product/12c/grid/cfgtoollogs/configToolAllCommands RESPONSE_FILE=${ORACLEPATH}/install/gridpass.rsp'   - ${GRIDUSER}
 fi
 if [[ '${ORACLE_VERSION}' == '12.2.0.1' ]]; then
-    su -c '${ORACLEPATH}/app/grid/product/12c/grid/gridSetup.sh -ignorePrereq -silent -responseFile ${ORACLEPATH}/install/grid.rsp -waitforcompletion'   - ${GRIDUSER}
+    su -c '${ORACLEPATH}/oracle/grid/product/12c/grid/gridSetup.sh -ignorePrereq -silent -responseFile ${ORACLEPATH}/install/grid.rsp -waitforcompletion'   - ${GRIDUSER}
     echo "安装grid后执行root脚本"
-    ${ORACLEPATH}/app/oraInventory/orainstRoot.sh
-    ${ORACLEPATH}/app/grid/product/12c/grid/root.sh
-    su -c '${ORACLEPATH}/app/grid/product/12c/grid/gridSetup.sh -executeConfigTools -responseFile ${ORACLEPATH}/install/grid.rsp -silent -waitforcompletion'   - ${GRIDUSER}
+    ${ORACLEPATH}/oracle/oraInventory/orainstRoot.sh
+    ${ORACLEPATH}/oracle/grid/product/12c/grid/root.sh
+    su -c '${ORACLEPATH}/oracle/grid/product/12c/grid/gridSetup.sh -executeConfigTools -responseFile ${ORACLEPATH}/install/grid.rsp -silent -waitforcompletion'   - ${GRIDUSER}
 fi
 
 
@@ -223,12 +227,12 @@ su -c "asmcmd lsdsk -p -G DATA"  - ${GRIDUSER}
 
 echo "配置oracle用户环境变量"
 su -c 'cat <<"EOF" >>/home/${ORACLEUSER}/.bash_profile
-export ORACLE_BASE=${ORACLEPATH}/app/oracle
-export ORACLE_HOME=${ORACLEPATH}/app/oracle/product/12c/db_1/
+export ORACLE_BASE=${ORACLEPATH}/oracle/oracle
+export ORACLE_HOME=${ORACLEPATH}/oracle/oracle/product/12c/db_1/
 export ORACLE_SID=${ORACLESID}
 export PATH=.:$ORACLE_HOME/bin:$ORACLE_HOME/OPatch:$ORACLE_HOME/jdk/bin:$PATH
-export LD_LIBRARY_PATH=${ORACLEPATH}/app/oracle/product/12c/db_1/lib:/lib:/usr/lib
-export CLASSPATH=${ORACLEPATH}/app/oracle/product/12c/db_1/jlib:${ORACLEPATH}/app/oracle/product/12c/db_1/rdbms/jlib
+export LD_LIBRARY_PATH=${ORACLEPATH}/oracle/oracle/product/12c/db_1/lib:/lib:/usr/lib
+export CLASSPATH=${ORACLEPATH}/oracle/oracle/product/12c/db_1/jlib:${ORACLEPATH}/oracle/oracle/product/12c/db_1/rdbms/jlib
 EOF'  - ${ORACLEUSER}
 
 echo "生成oracle的response文件"
@@ -238,10 +242,10 @@ su -c 'cat <<"EOF" >${ORACLEPATH}/install/database.rsp
 oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v12.1.0
 oracle.install.option=INSTALL_DB_SWONLY             
 UNIX_GROUP_NAME=oinstall                            
-INVENTORY_LOCATION=${ORACLEPATH}/app/oraInventory                      
+INVENTORY_LOCATION=${ORACLEPATH}/oracle/oraInventory                      
 SELECTED_LANGUAGES=en                               
-ORACLE_HOME=${ORACLEPATH}/app/oracle/product/12c/db_1                            
-ORACLE_BASE=${ORACLEPATH}/app/oracle                             
+ORACLE_HOME=${ORACLEPATH}/oracle/oracle/product/12c/db_1                            
+ORACLE_BASE=${ORACLEPATH}/oracle/oracle                             
 oracle.install.db.InstallEdition=EE                      
 oracle.install.db.DBA_GROUP=dba                   
 oracle.install.db.OPER_GROUP=oper                  
@@ -257,10 +261,10 @@ su -c 'cat <<"EOF" >${ORACLEPATH}/install/database.rsp
 oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v12.2.0
 oracle.install.option=INSTALL_DB_SWONLY             
 UNIX_GROUP_NAME=oinstall                            
-INVENTORY_LOCATION=${ORACLEPATH}/app/oraInventory                      
+INVENTORY_LOCATION=${ORACLEPATH}/oracle/oraInventory                      
 SELECTED_LANGUAGES=en                               
-ORACLE_HOME=${ORACLEPATH}/app/oracle/product/12c/db_1                            
-ORACLE_BASE=${ORACLEPATH}/app/oracle                             
+ORACLE_HOME=${ORACLEPATH}/oracle/oracle/product/12c/db_1                            
+ORACLE_BASE=${ORACLEPATH}/oracle/oracle                             
 oracle.install.db.InstallEdition=EE                           
 oracle.install.db.OSDBA_GROUP=dba                   
 oracle.install.db.OSOPER_GROUP=oper                  
@@ -282,15 +286,15 @@ if [[ '${ORACLE_VERSION}' == '12.2.0.1' ]]; then
    su -c '${ORACLEPATH}/install/database/runInstaller -silent -ignorePrereq -responsefile ${ORACLEPATH}/install/database.rsp -waitforcompletion'   - ${ORACLEUSER}
 fi
 echo "root执行安装"
-${ORACLEPATH}/app/oracle/product/12c/db_1/root.sh
+${ORACLEPATH}/oracle/oracle/product/12c/db_1/root.sh
 
 echo "更新补丁"
 if [[ '${ORACLE_VERSION}' == '12.2.0.1' ]] && [[ -f ${ORACLEPATH}/p6880880_122010_Linux-x86-64.zip ]]; then
-  su -c 'unzip ${ORACLEPATH}/install/p6880880_122010_Linux-x86-64.zip -d ${ORACLEPATH}/app/grid/product/12c/grid/' - ${GRIDUSER}
+  su -c 'unzip ${ORACLEPATH}/install/p6880880_122010_Linux-x86-64.zip -d ${ORACLEPATH}/oracle/grid/product/12c/grid/' - ${GRIDUSER}
   su -c 'unzip ${ORACLEPATH}/install/p27468969_122010_Linux-x86-64.zip -d ${ORACLEPATH}/install/' - ${GRIDUSER}
   su -c 'unzip ${ORACLEPATH}/install/p27475613_122010_Linux-x86-64.zip -d ${ORACLEPATH}/install/' - ${GRIDUSER}
-  ${ORACLEPATH}/app/grid/product/12c/grid/OPatch/opatchauto apply ${ORACLEPATH}/install/27468969/
-  ${ORACLEPATH}/app/grid/product/12c/grid/OPatch/opatchauto apply ${ORACLEPATH}/install/27475613/
+  ${ORACLEPATH}/oracle/grid/product/12c/grid/OPatch/opatchauto apply ${ORACLEPATH}/install/27468969/
+  ${ORACLEPATH}/oracle/grid/product/12c/grid/OPatch/opatchauto apply ${ORACLEPATH}/install/27475613/
 fi
 
 
@@ -302,11 +306,11 @@ su -c 'dbca -silent \
 -sid ${ORACLESID} \
 -SysPassword ${ORACLEPASSWD}   \
 -SystemPassword ${ORACLEPASSWD}   \
--emConfiguration NONE \
+-emConfiguration LOCAL \
 -storageType ASM \
 -datafileDestination +DATA \
 -characterSet ${ORACLE_CHARACTER} \
--memoryPercentage 80 \
+-memoryPercentage 50 \
 -redoLogFileSize 100' - ${ORACLEUSER}
 
 echo "安装完成"

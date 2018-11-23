@@ -1,0 +1,17 @@
+[
+    {
+      "Key": "InstanceId",
+      "DisplayName": "tuxedo实例ID",
+      "Value": "${outputs.tuxedo_instance.instanceCode}(${outputs.tuxedo_instance.privateIp})"
+    },
+    {
+      "Key": "version",
+      "DisplayName": "tuxedo版本",
+      "Value": "${parameters.TUXEDOVERSION}"
+    },
+    {
+      "Key": "tuxedopath",
+      "DisplayName": "tuxedo安装路径",
+      "Value": "${parameters.TUXEDOPATH}"
+    }
+  ]

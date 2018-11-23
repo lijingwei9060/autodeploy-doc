@@ -1,0 +1,237 @@
+[
+    {
+      "Key": "projectId",
+      "Type": "Bingo::Project::Id",
+      "DefaultValue": "11111",
+      "DisplayName": "项目",
+      "Fn::Source": {
+        "userMode": "buy",
+        "showRegion": true
+      }
+    },
+    {
+      "Key": "regionId",
+      "Type": "Bingo::Cloud::Region",
+      "DefaultValue": "bcc",
+      "DisplayName": "区域",
+      "Fn::Source": {}
+    },
+    {
+      "Key": "vpcId",
+      "Type": "Bingo::EC2::Vpc::Id",
+      "DefaultValue": "",
+      "DisplayName": "网络",
+      "Fn::Source": {
+        "regionId": "Ref:regionId",
+        "vdcId": "Ref:projectId"
+      }
+    },
+    {
+      "Key": "storageId",
+      "Type": "Bingo::EC2::CloudStorage",
+      "DefaultValue": "storage-cloud",
+      "DisplayName": "存储类型",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      }
+    },
+    {
+      "Key": "instanceType",
+      "Type": "Bingo::EC2::InstanceType",
+      "DefaultValue": "m2.large",
+      "DisplayName": "实例类型",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      }
+    },
+    {
+      "Key": "systemDataBuyNum",
+      "Type": "Number",
+      "DefaultValue": "50",
+      "DisplayName": "系统数据盘大小（G）",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "imageId",
+      "Type": "Bingo::EC2::CloudImage",
+      "DefaultValue": "ami-FF9B8D35",
+      "DisplayName": "镜像",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      },
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "securityGroupName",
+      "Type": "Bingo::EC2::SecurityGroup::Id",
+      "DefaultValue": "default",
+      "DisplayName": "安全组",
+      "Fn::Source": {
+        "regionId": "Ref:regionId",
+        "sortField": "Create_Time"
+      }
+    },
+    {
+      "Key": "expireTime",
+      "Type": "Bingo::EC2::ExpireTime",
+      "DefaultValue": "-1",
+      "DisplayName": "有效期",
+      "Fn::Source": {
+        "content": "",
+        "status": "",
+        "dictId": "9ccbe743-d09e-4509-a881-982e0b477c6f"
+      }
+    },
+    {
+      "Key": "keypairName",
+      "Type": "Bingo::EC2::KeyPair::KeyName",
+      "DisplayName": "密钥",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      },
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE"
+    },
+    {
+      "Key": "disableApiTermination",
+      "Type": "Bingo::EC2::TerminateSet",
+      "DisplayName": "是否允许销毁",
+      "Fn::Source": {
+        "content": "",
+        "status": "",
+        "dictId": "39308868-ff7d-453d-9052-7b80f32d225b"
+      },
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE"
+    },
+    {
+      "Key": "S3_INSTALL_BUCKET",
+      "Type": "String",
+      "DefaultValue": "http://169.254.169.254:8683/bingoinstall",
+      "DisplayName": "JAVA文件路径",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "MOUNTPOINT",
+      "Type": "String",
+      "DefaultValue": "${TUXEDOPATH}",
+      "DisplayName": "挂载点",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "VOLUMEID",
+      "Type": "String",
+      "DefaultValue": "${outputs.tuxedo_volume.volumeCode}",
+      "DisplayName": "存储卷ID",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "FSTYPE",
+      "Type": "String",
+      "DefaultValue": "ext4",
+      "DisplayName": "文件系统类型",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "SWAPSIZE",
+      "Type": "String",
+      "DefaultValue": "AUTO",
+      "DisplayName": "swap大小(M)AUTO自动计算",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "SWAPFILE",
+      "Type": "String",
+      "DefaultValue": "${TUXEDOPATH}/swapfile",
+      "DisplayName": "swap文件路径",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "NEEDREBOOT",
+      "Type": "String",
+      "DefaultValue": "true",
+      "DisplayName": "是否重启",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "USERNAME",
+      "Type": "String",
+      "DefaultValue": "oracle",
+      "DisplayName": " tuxedo安装用户",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "USERGROUP",
+      "Type": "String",
+      "DefaultValue": "${USERNAME}",
+      "DisplayName": "tuxedo安组装用户",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "TUXEDOPATH",
+      "Type": "String",
+      "DefaultValue": "/app",
+      "DisplayName": "tuxedo安装路径",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "TUXEDOPASSWD",
+      "Type": "String",
+      "DefaultValue": "oracle",
+      "DisplayName": "tuxedo监听密码",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "TUXEDOURL",
+      "Type": "String",
+      "DefaultValue": "http://169.254.169.254:8683/bingoinstall/tuxedo122200_64_Linux_01_x86.zip",
+      "DisplayName": "tuxedo安装文件路径",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "TUXEDOVERSION",
+      "Type": "String",
+      "DefaultValue": "12.2.2.0.0",
+      "DisplayName": "tuxedo安装版本",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "PATCHURL",
+      "Type": "String",
+      "DefaultValue": "",
+      "DisplayName": "patch补丁地址",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "tuxedo配置"
+    },
+    {
+      "Key": "volumeBuyNum",
+      "Type": "Number",
+      "DefaultValue": "100",
+      "DisplayName": "数据盘大小（G）",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    }
+  ]

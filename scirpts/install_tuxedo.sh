@@ -12,17 +12,44 @@ export LC_ALL=en_US.UTF-8
 echo "添加用户${USERNAME}" 
 groupadd ${USERGROUP}
 useradd -m -g ${USERGROUP} ${USERNAME}
-echo "检查环境java、swap"
+
+echo "优化内核参数"
+cat <<EOF >/etc/sysctl.conf
+vm.swappiness = 10
+vm.vfs_cache_pressure = 50
+fs.aio-max-nr = 1048576
+fs.file-max = 6815744
+kernel.shmall = 1073741824
+kernel.shmmax = 4398046511104
+kernel.shmmni = 4096
+kernel.sem = 250 32000 100 128
+net.ipv4.ip_local_port_range = 9000 65500
+net.core.rmem_default = 262144
+net.core.rmem_max = 4194304
+net.core.wmem_default = 262144
+net.core.wmem_max = 1048576
+EOF
+
+echo "设置用户资源使用限制"
+cat <<EOF >>/etc/security/limits.conf
+${USERNAME}} soft nproc 2047
+${USERNAME} hard nproc 16384
+${USERNAME} soft nofile 1024
+${USERNAME} hard nofile 65536
+${USERNAME} soft stack 10240   
+${USERNAME} hard stack 32768     
+EOF
+
 echo "安装依赖软件，使用tuxedo需要编译工具"
-mkdir -p ${TUXEDOPATH}
-chown -R ${USERNAME}:${USERGROUP} ${TUXEDOPATH}
+mkdir -p ${TUXEDOPATH}/tuxedo
+chown -R ${USERNAME}:${USERGROUP} ${TUXEDOPATH}/tuxedo
 yum -y install zip gcc automake autoconf libtool make 
 echo "生成静默安装文件" 
-su -c 'cat <<EOF>${TUXEDOPATH}/tuxedo.rsp
+su -c 'cat <<EOF >${TUXEDOPATH}/tuxedo/tuxedo.rsp
 RESPONSEFILE_VERSION=2.2.1.0.0
 UNIX_GROUP_NAME="${USERGROUP}"
-FROM_LOCATION="${TUXEDOPATH}/Disk1/stage/products.xml"
-ORACLE_HOME="${TUXEDOPATH}/oracle/tuxHome"
+FROM_LOCATION="${TUXEDOPATH}/tuxedo/Disk1/stage/products.xml"
+ORACLE_HOME="${TUXEDOPATH}/tuxedo/oracle/tuxHome"
 ORACLE_HOME_NAME="tuxHome"
 SHOW_WELCOME_PAGE=true
 SHOW_CUSTOM_TREE_PAGE=true
@@ -52,65 +79,65 @@ TLISTEN_PORT="3050"
 TLISTEN_PASSWORD="${TUXEDOPASSWD}"
 EOF' - ${USERNAME}
 echo "下载软件包" ${TUXEDOURL} 到 ${TEMPATH}
-su -c "export LC_ALL=en_US.UTF-8 ; wget ${TUXEDOURL} -O ${TUXEDOPATH}/tuxedo.zip" - ${USERNAME}
+su -c "export LC_ALL=en_US.UTF-8 ; wget ${TUXEDOURL} -O ${TUXEDOPATH}/tuxedo/tuxedo.zip" - ${USERNAME}
 echo "生成oraInst.loc文件"
-cat <<EOF>/etc/oraInst.loc
+cat <<EOF >/etc/oraInst.loc
 inventory_loc=/home/${USERNAME}/oraInventory
 inst_group=${USERGROUP}
 EOF
 
 chmod 644 /etc/oraInst.loc
 if [[ '${TUXEDOVERSION}' == '12.2.2.0.0' ]]  ; then 
-echo "安装tuxedo" 到 ${TUXEDOPATH}
-su -c "export LC_ALL=en_US.UTF-8 ; cd ${TUXEDOPATH} && \
+echo "安装tuxedo" 到 ${TUXEDOPATH}/tuxedo
+su -c "export LC_ALL=en_US.UTF-8 ; cd ${TUXEDOPATH}/tuxedo && \
       jar xf tuxedo.zip && \
-      cd ${TUXEDOPATH}/Disk1/install &&  chmod -R +x * && ./runInstaller.sh -responseFile ${TUXEDOPATH}/tuxedo.rsp -silent -waitforcompletion && \
-      rm -rf ${TUXEDOPATH}/Disk1 ${TUXEDOPATH}/tuxedo.rsp ${TUXEDOPATH}/tuxedo.zip" - ${USERNAME}
+      cd ${TUXEDOPATH}/tuxedo/Disk1/install &&  chmod -R +x * && ./runInstaller.sh -responseFile ${TUXEDOPATH}/tuxedo/tuxedo.rsp -silent -waitforcompletion && \
+      rm -rf ${TUXEDOPATH}/tuxedo/Disk1 ${TUXEDOPATH}/tuxedo/tuxedo.rsp ${TUXEDOPATH}/tuxedo/tuxedo.zip" - ${USERNAME}
 fi
 
 if [[ '${TUXEDOVERSION}' == '12.1.3.0.0' ]] ; then 
-echo "安装tuxedo" 到 ${TUXEDOPATH}
-su -c "export LC_ALL=en_US.UTF-8 ; cd ${TUXEDOPATH} && \
+echo "安装tuxedo" 到 ${TUXEDOPATH}/tuxedo
+su -c "export LC_ALL=en_US.UTF-8 ; cd ${TUXEDOPATH}/tuxedo && \
       jar xf tuxedo.zip && \
-      cd ${TUXEDOPATH}/Disk1/install &&  chmod -R +x * && ./runInstaller -responseFile ${TUXEDOPATH}/tuxedo.rsp -silent -waitforcompletion && \
-      rm -rf ${TUXEDOPATH}/Disk1 ${TUXEDOPATH}/tuxedo.rsp ${TUXEDOPATH}/tuxedo.zip" - ${USERNAME}
+      cd ${TUXEDOPATH}/tuxedo/Disk1/install &&  chmod -R +x * && ./runInstaller -responseFile ${TUXEDOPATH}/tuxedo/tuxedo.rsp -silent -waitforcompletion && \
+      rm -rf ${TUXEDOPATH}/tuxedo/Disk1 ${TUXEDOPATH}/tuxedo/tuxedo.rsp ${TUXEDOPATH}/tuxedo/tuxedo.zip" - ${USERNAME}
 fi
 
 echo "配置用户环境变量"
 su -c 'cat <<EOF>>~/.bash_profile
-export ORACLE_HOME=${TUXEDOPATH}/oracle/tuxHome
-export TUXDIR=${TUXEDOPATH}/oracle/tuxHome/tuxedo${TUXEDOVERSION}
-export PATH=${TUXDIR}/bin:$PATH:$HOME/bin
+export ORACLE_HOME=${TUXEDOPATH}/tuxedo/oracle/tuxHome
+export TUXDIR=${TUXEDOPATH}/tuxedo/oracle/tuxHome/tuxedo${TUXEDOVERSION}
+export PATH=${TUXDIR}/tuxedo/bin:$PATH:$HOME/bin
 EOF' - ${USERNAME}
 
 echo "tuxedo安装完成"
 
 if [ -n "${PATCHURL}" ]; then 
   echo "开始安装tuxedo补丁包"
-  su -c "export LC_ALL=en_US.UTF-8 ; cd ${TUXEDOPATH} && \
-         wget ${PATCHURL} -O ${TUXEDOPATH}/patch.zip && \
+  su -c "export LC_ALL=en_US.UTF-8 ; cd ${TUXEDOPATH}/tuxedo && \
+         wget ${PATCHURL} -O ${TUXEDOPATH}/tuxedo/patch.zip && \
          unzip patch.zip -d ./patch/ && \
          $ORACLE_HOME/OPatch/opatch apply patch/*.zip && \
-         rm -rf ${TUXEDOPATH}/patch.zip && \
-         rm -rf ${TUXEDOPATH}/patch
+         rm -rf ${TUXEDOPATH}/tuxedo/patch.zip && \
+         rm -rf ${TUXEDOPATH}/tuxedo/patch
         " - ${USERNAME}
 fi
 
 echo "编译并配置simpapp用例"
-su -c "mkdir -p ${TUXEDOPATH}/oracle/user_projects/simpapp" - ${USERNAME}
+su -c "mkdir -p ${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp" - ${USERNAME}
 
-su -c 'cat >${TUXEDOPATH}/oracle/user_projects/simpapp/setenv.sh << EndOfFile
-source  ${TUXEDOPATH}/oracle/tuxHome/tuxedo${TUXEDOVERSION}/tux.env
+su -c 'cat >${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/setenv.sh << EndOfFile
+source  ${TUXEDOPATH}/tuxedo/oracle/tuxHome/tuxedo${TUXEDOVERSION}/tux.env
 export HOSTNAME=`uname -n`
-export APPDIR=${TUXEDOPATH}/oracle/user_projects/simpapp
-export TUXCONFIG=${TUXEDOPATH}/oracle/user_projects/simpapp/tuxconfig
+export APPDIR=${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp
+export TUXCONFIG=${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/tuxconfig
 export IPCKEY=112233
 export NLSPORT=12233
 export JMXPORT=22233
 EndOfFile' - ${USERNAME}
 
 echo "生成simapp的环境配置"
-su -c 'cat >${TUXEDOPATH}/oracle/user_projects/simpapp/ubbsimple << EndOfFile
+su -c 'cat >${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/ubbsimple << EndOfFile
 *RESOURCES
 IPCKEY		112233
 DOMAINID	simpapp
@@ -122,9 +149,9 @@ MODEL		SHM
 LDBAL		Y
 *MACHINES
 "`uname -n`"	LMID=site1
-		APPDIR="${TUXEDOPATH}/oracle/user_projects/simpapp"
-		TUXCONFIG="${TUXEDOPATH}/oracle/user_projects/simpapp/tuxconfig"
-		TUXDIR="${TUXEDOPATH}/oracle/tuxHome/tuxedo${TUXEDOVERSION}"
+		APPDIR="${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp"
+		TUXCONFIG="${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/tuxconfig"
+		TUXDIR="${TUXEDOPATH}/tuxedo/oracle/tuxHome/tuxedo${TUXEDOVERSION}"
 *GROUPS
 APPGRP		LMID=site1 GRPNO=1 OPENINFO=NONE
 *SERVERS
@@ -135,11 +162,11 @@ EndOfFile'  - ${USERNAME}
 
 echo "拷贝simapp源码文件"
 
-su -c 'if [ ! -r ${TUXEDOPATH}/oracle/user_projects/simpapp/simpcl.c ]; then cp ${TUXEDOPATH}/oracle/tuxHome/tuxedo${TUXEDOVERSION}/samples/atmi/simpapp/simpcl.c ${TUXEDOPATH}/oracle/user_projects/simpapp/ ; fi'  - ${USERNAME}
-su -c 'if [ ! -r ${TUXEDOPATH}/oracle/user_projects/simpapp/simpserv.c ]; then	cp ${TUXEDOPATH}/oracle/tuxHome/tuxedo${TUXEDOVERSION}/samples/atmi/simpapp/simpserv.c ${TUXEDOPATH}/oracle/user_projects/simpapp/ ; fi'  - ${USERNAME}
+su -c 'if [ ! -r ${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/simpcl.c ]; then cp ${TUXEDOPATH}/tuxedo/oracle/tuxHome/tuxedo${TUXEDOVERSION}/samples/atmi/simpapp/simpcl.c ${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/ ; fi'  - ${USERNAME}
+su -c 'if [ ! -r ${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/simpserv.c ]; then	cp ${TUXEDOPATH}/tuxedo/oracle/tuxHome/tuxedo${TUXEDOVERSION}/samples/atmi/simpapp/simpserv.c ${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp/ ; fi'  - ${USERNAME}
  
 echo "编译simapp"
-su -c 'cd ${TUXEDOPATH}/oracle/user_projects/simpapp && \
+su -c 'cd ${TUXEDOPATH}/tuxedo/oracle/user_projects/simpapp && \
        source setenv.sh &&  \
        tmloadcf -y ubbsimple && \
        buildclient -o simpcl -f simpcl.c && \

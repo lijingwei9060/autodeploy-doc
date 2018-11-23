@@ -16,6 +16,7 @@
 echo "设置hostname"
 echo "${outputs.oracle_primary.privateIp}    ${outputs.oracle_primary.instanceCode} "  >>/etc/hosts
 echo "${outputs.oracle_standby.privateIp}    ${outputs.oracle_standby.instanceCode} "  >>/etc/hosts
+chmod 777 /tmp
 
 echo "优化内核参数"
 cat <<EOF >/etc/sysctl.conf
@@ -224,6 +225,7 @@ fi
 
 
 echo "查看磁盘"
+sleep 60 #安装完grid需要等待服务启动
 su -c "asmcmd lsdsk -p -G DATA"  - ${GRIDUSER}
 
 echo "配置oracle用户环境变量"
@@ -297,113 +299,3 @@ if [[ '${ORACLE_VERSION}' == '12.2.0.1' ]] && [[ -f ${ORACLEPATH}/install/p68808
   ${ORACLEPATH}/oracle/grid/product/12c/grid/OPatch/opatchauto apply ${ORACLEPATH}/install/27468969/
   ${ORACLEPATH}/oracle/grid/product/12c/grid/OPatch/opatchauto apply ${ORACLEPATH}/install/27475613/
 fi
-
-echo "配置tnsnames.ora"
-su -c 'cat <<EOF >${ORACLEPATH}/oracle/oracle/product/12c/db_1/network/admin/tnsnames.ora
-${ORACLESID} =
-  (DESCRIPTION =
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = TCP)(HOST = ${outputs.oracle_primary.instanceCode})(PORT = 1521))
-    )
-    (CONNECT_DATA =
-      (SERVER = DEDICATED) (SERVICE_NAME = ${ORACLESID})
-    )
-  )
-
-${ORACLESID}_stby =
-  (DESCRIPTION =
-    (UT=A)
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = TCP)(HOST = ${outputs.oracle_standby.instanceCode})(PORT = 1521))
-    )
-    (CONNECT_DATA =
-      (SERVER = DEDICATED) (SERVICE_NAME = ${ORACLESID})
-    )
-  )
-EOF' - ${ORACLEUSER}
-
-echo "配置listener.ora"
-su -c 'cat <<EOF >>${ORACLEPATH}/oracle/grid/product/12c/grid/network/admin/listener.ora
-SID_LIST_LISTENER =
-  (SID_LIST =
-    (SID_DESC =
-      (GLOBAL_DBNAME = ${ORACLESID}_DGMGRL)
-      (ORACLE_HOME = ${ORACLEPATH}/oracle/oracle/product/12c/db_1)
-      (SID_NAME = ${ORACLESID})
-    )
-    (SID_DESC =
-      (GLOBAL_DBNAME = ${ORACLESID})
-      (ORACLE_HOME = ${ORACLEPATH}/oracle/oracle/product/12c/db_1)
-      (SID_NAME = ${ORACLESID})
-    )
-  )
-EOF' - ${GRIDUSER}
-
-su -c 'lsnrctl stop ;lsnrctl start' - ${GRIDUSER}
-
-echo "配置standby配置文件"
-su -c 'cat <<EOF >${ORACLEPATH}/install/stby.ora
-*.db_name="${ORACLESID}"
-EOF' - ${ORACLEUSER}
-
-su -c 'orapwd file=${ORACLEPATH}/oracle/oracle/product/12c/db_1/dbs/orapw${ORACLESID} password=${ORACLEPASSWD} format=12 entries=10 force=y' - ${ORACLEUSER}
-
-su -c 'mkdir -p ${ORACLEPATH}/oracle/oracle/admin/${ORACLESID}/adump' - ${ORACLEUSER}
-
-
-su -c 'sqlplus "/as sysdba"  <<EOF
-startup nomount pfile="${ORACLEPATH}/install/stby.ora";
-quit;
-EOF' - ${ORACLEUSER}
-#------------------------
-su -c 'rman TARGET sys/${ORACLEPASSWD}@${ORACLESID} AUXILIARY sys/${ORACLEPASSWD}@${ORACLESID}_stby <<EOF
-DUPLICATE TARGET DATABASE
-FOR STANDBY
-FROM ACTIVE DATABASE
-DORECOVER
-SPFILE
-SET db_unique_name="${ORACLESID}_stby" COMMENT "Is standby"
-NOFILENAMECHECK;
-quit;
-EOF' - ${ORACLEUSER}
-#重启数据库
-su -c 'sqlplus "/as sysdba"  <<EOF
-shutdown immediate;
-quit;
-EOF' - ${ORACLEUSER}
-
-su -c 'srvctl add database -db ${ORACLESID} -o ${ORACLEPATH}/oracle/oracle/product/12c/db_1 -p ${ORACLEPATH}/oracle/oracle/product/12c/db_1/dbs/spfile${ORACLESID}.ora -r physical_standby -s "read only" ' - ${ORACLEUSER}
-su -c 'srvctl start  database -db ${ORACLESID} -startoption mount' - ${ORACLEUSER}
-sleep 60
-#------------------------
-su -c 'sqlplus "/as sysdba"  <<EOF
-ALTER SYSTEM SET dg_broker_start=true;
-quit;
-EOF' - ${ORACLEUSER}
-
-su -c 'sqlplus "sys/${ORACLEPASSWD}@${ORACLESID}_stby as sysdba"  <<EOF
-ALTER SYSTEM SET dg_broker_start=true;
-quit;
-EOF' - ${ORACLEUSER}
-sleep 60
-
-
-su -c 'dgmgrl sys/${ORACLEPASSWD}@${ORACLESID} <<EOF
-CREATE CONFIGURATION my_dg_config AS PRIMARY DATABASE IS ${ORACLESID} CONNECT IDENTIFIER IS ${ORACLESID};
-ADD DATABASE ${ORACLESID}_stby AS CONNECT IDENTIFIER IS ${ORACLESID}_stby MAINTAINED AS PHYSICAL;
-ENABLE CONFIGURATION;
-edit database ${ORACLESID}_stby set property ArchiveLagTarget=0;
-edit database ${ORACLESID}_stby set property StandbyFileManagement=AUTO;
-edit database ${ORACLESID}_stby set property LogArchiveMinSucceedDest=1;
-edit database ${ORACLESID}_stby set property LogArchiveMaxProcesses=4;
-edit database ${ORACLESID}_stby set property DataGuardSyncLatency=0;
-SHOW CONFIGURATION;
-quit;
-EOF' - ${ORACLEUSER}
-#----------
-
-su - 'srvctl stop  database -db ${ORACLESID} ;srvctl start database -db ${ORACLESID} -startoption mount' - ${ORACLEUSER}
-su -c 'dgmgrl sys/${ORACLEPASSWD}@${ORACLESID} <<EOF
-SHOW CONFIGURATION;
-quit;
-EOF' - ${ORACLEUSER}

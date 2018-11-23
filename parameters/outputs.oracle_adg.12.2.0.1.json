@@ -1,0 +1,22 @@
+[
+    {
+      "Key": "InstanceId",
+      "DisplayName": "root实例ID",
+      "Value": "${outputs.oracle_primary.instanceCode}(${outputs.oracle_primary.privateIp})"
+    },
+    {
+      "Key": "oraclepath",
+      "DisplayName": "oracle安装路径",
+      "Value": "${parameters.ORACLEPATH}"
+    },
+    {
+      "Key": "oraclesid",
+      "DisplayName": "sid",
+      "Value": "${parameters.ORACLESID}"
+    },
+    {
+      "Key": "oraclepass",
+      "DisplayName": "dba密码",
+      "Value": "${parameters.ORACLEPASSWD}"
+    }
+  ]

@@ -17,6 +17,8 @@ echo "设置hostname"
 echo "${outputs.oracle_primary.privateIp}    ${outputs.oracle_primary.instanceCode} "  >>/etc/hosts
 echo "${outputs.oracle_standby.privateIp}    ${outputs.oracle_standby.instanceCode} "  >>/etc/hosts
 
+chmod 777 /tmp
+
 echo "优化内核参数"
 cat <<EOF >/etc/sysctl.conf
 vm.swappiness = 10
@@ -313,54 +315,8 @@ su -c 'dbca -silent \
 -storageType ASM \
 -datafileDestination +DATA \
 -characterSet ${ORACLE_CHARACTER} \
--memoryPercentage 80 \
+-memoryPercentage 50 \
 -enableArchive true \
 -redoLogFileSize 100 \
 -recoveryAreaDestination +DATA \
 -recoveryAreaSize 10240' - ${ORACLEUSER}
-
-echo "配置standby日志文件组"
-su -c 'sqlplus "/as sysdba" <<EOF
-ALTER DATABASE FORCE LOGGING;
-ALTER DATABASE  flashback on;
-ALTER SYSTEM SWITCH LOGFILE;
-ALTER DATABASE ADD STANDBY LOGFILE SIZE 100M;
-ALTER DATABASE ADD STANDBY LOGFILE SIZE 100M;
-ALTER DATABASE ADD STANDBY LOGFILE SIZE 100M;
-ALTER DATABASE ADD STANDBY LOGFILE SIZE 100M;
-alter system set STANDBY_FILE_MANAGEMENT=AUTO scope=both;
-alter system set FAL_SERVER=${ORACLESID}_stby scope=both ;
-quit;
-EOF' - ${ORACLEUSER}
-
-echo "配置tnsnames.ora"
-su -c 'cat <<EOF >>${ORACLEPATH}/oracle/oracle/product/12c/db_1/network/admin/tnsnames.ora
-${ORACLESID}_stby =
-  (DESCRIPTION =
-    (UT=A)
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = TCP)(HOST = ${outputs.oracle_standby.instanceCode})(PORT = 1521))
-    )
-    (CONNECT_DATA =
-      (SERVER = DEDICATED) (SERVICE_NAME = ${ORACLESID})
-    )
-  )
-EOF' - ${ORACLEUSER}
-
-su -c 'cat <<EOF >>${ORACLEPATH}/oracle/grid/product/12c/grid/network/admin/listener.ora
-SID_LIST_LISTENER =
-  (SID_LIST =
-    (SID_DESC =
-      (GLOBAL_DBNAME = ${ORACLESID}_DGMGRL)
-      (ORACLE_HOME = ${ORACLEPATH}/oracle/oracle/product/12c/db_1)
-      (SID_NAME = ${ORACLESID})
-    )
-    (SID_DESC =
-      (GLOBAL_DBNAME = ${ORACLESID})
-      (ORACLE_HOME = ${ORACLEPATH}/oracle/oracle/product/12c/db_1)
-      (SID_NAME = ${ORACLESID})
-    )
-  )
-EOF' - ${GRIDUSER}
-
-su -c 'lsnrctl reload' - ${GRIDUSER}

@@ -79,7 +79,7 @@ TLISTEN_PORT="3050"
 TLISTEN_PASSWORD="${TUXEDOPASSWD}"
 EOF' - ${USERNAME}
 echo "下载软件包" ${TUXEDOURL} 到 ${TEMPATH}
-su -c "export LC_ALL=en_US.UTF-8 ; wget ${TUXEDOURL} -O ${TUXEDOPATH}/tuxedo/tuxedo.zip" - ${USERNAME}
+su -c "export LC_ALL=en_US.UTF-8 ; wget -q ${TUXEDOURL} -O ${TUXEDOPATH}/tuxedo/tuxedo.zip" - ${USERNAME}
 echo "生成oraInst.loc文件"
 cat <<EOF >/etc/oraInst.loc
 inventory_loc=/home/${USERNAME}/oraInventory

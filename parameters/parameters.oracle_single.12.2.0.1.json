@@ -1,0 +1,267 @@
+[
+    {
+      "Key": "projectId",
+      "Type": "Bingo::Project::Id",
+      "DefaultValue": "11111",
+      "DisplayName": "项目",
+      "Fn::Source": {
+        "userMode": "buy",
+        "showRegion": true
+      }
+    },
+    {
+      "Key": "regionId",
+      "Type": "Bingo::Cloud::Region",
+      "DefaultValue": "bcc",
+      "DisplayName": "区域",
+      "Fn::Source": {}
+    },
+    {
+      "Key": "vpcId",
+      "Type": "Bingo::EC2::Vpc::Id",
+      "DefaultValue": "",
+      "DisplayName": "网络",
+      "Fn::Source": {
+        "regionId": "Ref:regionId",
+        "vdcId": "Ref:projectId"
+      }
+    },
+    {
+      "Key": "storageId",
+      "Type": "Bingo::EC2::CloudStorage",
+      "DisplayName": "存储类型",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      },
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE"
+    },
+    {
+      "Key": "instanceType",
+      "Type": "Bingo::EC2::InstanceType",
+      "DefaultValue": "m2.large",
+      "DisplayName": "实例类型",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      }
+    },
+    {
+      "Key": "imageId",
+      "Type": "Bingo::EC2::CloudImage",
+      "DefaultValue": "ami-6B67809C",
+      "DisplayName": "镜像",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      },
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE"
+    },
+    {
+      "Key": "securityGroupName",
+      "Type": "Bingo::EC2::SecurityGroup::Id",
+      "DefaultValue": "default",
+      "DisplayName": "安全组",
+      "Fn::Source": {
+        "regionId": "Ref:regionId",
+        "sortField": "Create_Time"
+      }
+    },
+    {
+      "Key": "expireTime",
+      "Type": "Bingo::EC2::ExpireTime",
+      "DefaultValue": "-1",
+      "DisplayName": "有效期",
+      "Fn::Source": {
+        "content": "",
+        "status": "",
+        "dictId": "9ccbe743-d09e-4509-a881-982e0b477c6f"
+      }
+    },
+    {
+      "Key": "keypairName",
+      "Type": "Bingo::EC2::KeyPair::KeyName",
+      "DisplayName": "密钥",
+      "Fn::Source": {
+        "regionId": "Ref:regionId"
+      },
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE"
+    },
+    {
+      "Key": "disableApiTermination",
+      "Type": "Bingo::EC2::TerminateSet",
+      "DisplayName": "是否允许销毁",
+      "Fn::Source": {
+        "content": "",
+        "status": "",
+        "dictId": "39308868-ff7d-453d-9052-7b80f32d225b"
+      },
+      "NoEcho": "FALSE",
+      "ConstraintDescription": "防止批量时误删除，如需删除需要先取消销毁保护",
+      "AllowedCustomization": "TRUE"
+    },
+    {
+      "Key": "buyNum",
+      "Type": "String",
+      "DefaultValue": "1",
+      "DisplayName": "创建数量",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "systemDataBuyNum",
+      "Type": "Number",
+      "DefaultValue": "100",
+      "DisplayName": "系统盘大小（G）",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "volumenum",
+      "Type": "Number",
+      "DefaultValue": "5",
+      "DisplayName": "磁盘数量",
+      "NoEcho": "FALSE",
+      "AllowedValues": [
+        "5",
+        "8",
+        "10"
+      ],
+      "AllowedCustomization": "TRUE",
+      "UIType": "selectbutton",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "ORACLEUSER",
+      "Type": "String",
+      "DefaultValue": "oracle",
+      "DisplayName": "oracle用户名",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "GRIDUSER",
+      "Type": "String",
+      "DefaultValue": "grid",
+      "DisplayName": "grid用户",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "ORACLEPATH",
+      "Type": "String",
+      "DefaultValue": "/app",
+      "DisplayName": "oracle目录",
+      "NoEcho": "FALSE",
+      "Description": "不能安装到挂载点路径下",
+      "AllowedCustomization": "TRUE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "ORACLESID",
+      "Type": "String",
+      "DefaultValue": "orcl",
+      "DisplayName": "oracle sid",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "ORACLEPASSWD",
+      "Type": "String",
+      "DefaultValue": "Password#2",
+      "DisplayName": "oracle密码",
+      "NoEcho": "FALSE",
+      "MaxLength": "15",
+      "MinLength": "8",
+      "Description": "默认值Password#2",
+      "AllowedCustomization": "TRUE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "ORACLE_VERSION",
+      "Type": "String",
+      "DefaultValue": "12.2.0.1",
+      "DisplayName": "oracle版本",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "INSTALLER_S3_BUCKET",
+      "Type": "String",
+      "DefaultValue": "http://169.254.169.254:8683/bingoinstall",
+      "DisplayName": "s3桶路径",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "SWAPFILE",
+      "Type": "String",
+      "DefaultValue": "/opt/swapfile",
+      "DisplayName": "swap文件路径",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "SWAPSIZE",
+      "Type": "String",
+      "DefaultValue": "AUTO",
+      "DisplayName": "swap大小",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "volumeBuyNum",
+      "Type": "Number",
+      "DefaultValue": "100",
+      "DisplayName": "数据盘大小（G）",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "TRUE",
+      "UIGroup": "oracle参数组"
+    },
+    {
+      "Key": "MOUNTPOINT",
+      "Type": "String",
+      "DefaultValue": "${ORACLEPATH}",
+      "DisplayName": "挂载点",
+      "NameSpace": "",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "VOLUMEID",
+      "Type": "String",
+      "DefaultValue": "${outputs.oracle_install_volume.volumeCode}",
+      "DisplayName": "volumeid",
+      "NameSpace": "",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "FSTYPE",
+      "Type": "String",
+      "DefaultValue": "ext4",
+      "DisplayName": "备份盘格式",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "NEEDREBOOT",
+      "Type": "String",
+      "DefaultValue": "true",
+      "DisplayName": "挂盘是否重启",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    },
+    {
+      "Key": "ORACLE_CHARACTER",
+      "Type": "String",
+      "DefaultValue": "ZHS16GBK",
+      "DisplayName": "字符集",
+      "NoEcho": "FALSE",
+      "AllowedCustomization": "FALSE"
+    }
+  ]

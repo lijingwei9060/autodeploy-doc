@@ -1,20 +1,8 @@
-# First Chapter
+# 规范
 
-GitBook allows you to organize your book into chapters, each chapter is stored in a separate file like this one.
+参数命名规范
 
+步骤命名规范
 
-
-sd
-
-w
-
-ef
-
-w
-
-e
-
-w
-
-effe
+文件存放规范
 
